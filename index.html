@@ -159,64 +159,70 @@ const webhookURL="https://discord.com/api/webhooks/1399488282131435580/jP1VGYSHB
 const form=document.getElementById("pelletageForm"); 
 const messageBox=document.getElementById("messageBox");
 
-form.addEventListener("submit", async function(e){
-e.preventDefault();
-const name=document.getElementById("name").value.trim();
-const address=document.getElementById("address").value.trim();
-const phone=document.getElementById("phone").value.trim();
-const email=document.getElementById("email").value.trim();
-const date=document.getElementById("date").value;
-if(!name||!address||!phone||!email||!date){ messageBox.textContent="Veuillez remplir tous les champs."; messageBox.className="error"; messageBox.style.display="block"; return; }
-
-const coords = await getCoordinates(address);
-if(!coords){ document.getElementById("zoneMessage").textContent="Adresse introuvable"; return; }
-
-const dist = distanceKm(baseLat, baseLng, coords.lat, coords.lon);
-let priceMsg="";
-if(dist<=rayonBleu){ priceMsg="✅ Adresse dans zone 10$ !";}
-else if(dist<=rayonMauve){ priceMsg="✅ Adresse dans zone 20$ !";}
-else{ priceMsg="❌ Adresse trop loin ! Nous ne desservons pas cette zone."; }
-
-document.getElementById("zoneMessage").textContent=priceMsg;
-if(dist>rayonMauve){ return; }
-
-const content=`**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nEmail: ${email}\nDate souhaitée: ${date}\nPrix estimé: ${priceMsg}`;
-fetch(webhookURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content})})
-.then(()=>{ messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset(); })
-.catch(()=>{ messageBox.textContent="❌ Erreur, réessayez."; messageBox.className="error"; messageBox.style.display="block"; });
+/* Géolocalisation automatique */
+window.addEventListener("load", () => {
+  const addressInput=document.getElementById("address");
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(async (position)=>{
+      const lat=position.coords.latitude; const lon=position.coords.longitude;
+      const url=`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+      const resp=await fetch(url);
+      const data=await resp.json();
+      if(data && data.display_name){ addressInput.value=data.display_name; }
+    },()=>{ alert("Veuillez accepter la localisation pour poursuivre la demande de pelletage."); });
+  } else { alert("La géolocalisation n'est pas supportée par votre navigateur."); }
 });
 
-/* Avis */
-let avisData=[];
+form.addEventListener("submit", async function(e){
+  e.preventDefault();
+  const name=document.getElementById("name").value.trim();
+  const address=document.getElementById("address").value.trim();
+  const phone=document.getElementById("phone").value.trim();
+  const email=document.getElementById("email").value.trim();
+  const date=document.getElementById("date").value;
+  if(!name||!address||!phone||!email||!date){ messageBox.textContent="Veuillez remplir tous les champs."; messageBox.className="error"; messageBox.style.display="block"; return; }
+  
+  const coords=await getCoordinates(address);
+  let zoneText="Adresse hors zone autorisée !";
+  if(coords){
+    const dist=distanceKm(baseLat,baseLng,coords.lat,coords.lon);
+    if(dist<=rayonBleu){ zoneText="Dans le cercle bleu : 10$"; }
+    else if(dist<=rayonMauve){ zoneText="Dans le cercle mauve : 20$"; }
+    else{ zoneText="Hors du cercle mauve : non desservi"; }
+  }
+  
+  const content=`**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nEmail: ${email}\nDate souhaitée: ${date}\nZone: ${zoneText}`;
+  fetch(webhookURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content})})
+  .then(()=>{ messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset(); })
+  .catch(()=>{ messageBox.textContent="❌ Erreur, réessayez."; messageBox.className="error"; messageBox.style.display="block"; });
+});
+
+/* Formulaire avis simple */
 const avisForm=document.getElementById("avisForm");
 const avisList=document.getElementById("avisList");
-const averageStars=document.getElementById("averageStars");
+let avisData=[];
 
-function updateAvis(){
-avisList.innerHTML="";
-if(avisData.length===0){averageStars.textContent="0"; return;}
-let sum=0;
-avisData.forEach(a=>{sum+=a.stars; avisList.innerHTML+=`<p><strong>${a.username}</strong> - ${a.stars}⭐<br>${a.message||""}</p>`;});
-averageStars.textContent=(sum/avisData.length).toFixed(1);
+avisForm.addEventListener("submit", function(e){
+  e.preventDefault();
+  const username=document.getElementById("username").value.trim();
+  const stars=parseInt(document.getElementById("stars").value);
+  const message=document.getElementById("message").value.trim();
+  if(!username || isNaN(stars) || stars<0 || stars>5){ alert("Nom et étoiles valides requis."); return; }
+  avisData.push({username, stars, message});
+  renderAvis();
+  avisForm.reset();
+});
+
+function renderAvis(){
+  let html="";
+  let total=0;
+  avisData.forEach(a=>{
+    total+=a.stars;
+    html+=`<p><strong>${a.username}</strong> : ${'⭐'.repeat(a.stars)}<br>${a.message}</p>`;
+  });
+  avisList.innerHTML=html;
+  document.getElementById("averageStars").textContent=(avisData.length>0 ? (total/avisData.length).toFixed(1) : 0);
 }
-
-avisForm.addEventListener("submit",function(e){
-e.preventDefault();
-const username=document.getElementById("username").value.trim();
-const stars=parseInt(document.getElementById("stars").value);
-const message=document.getElementById("message").value.trim();
-if(!username||isNaN(stars)||stars<0||stars>5) return;
-avisData.push({username,stars,message});
-updateAvis();
-avisForm.reset();
-});
-
-/* Admin */
-document.getElementById("adminBtn").addEventListener("click",function(){
-let user=prompt("Nom d'utilisateur:"); let pass=prompt("Mot de passe:");
-if(user==="Maxime Riopel" && pass==="Billy0930"){ avisData=[]; updateAvis(); alert("Avis réinitialisés !"); }
-else{ alert("Accès refusé"); }
-});
 </script>
 
 </body>
