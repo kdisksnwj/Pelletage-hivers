@@ -87,13 +87,11 @@ footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-t
 <input type="text" id="name" placeholder="Ton nom" required>
 <input type="text" id="address" placeholder="Adresse complète" required>
 <p id="zoneMessage" style="font-weight:bold;"></p>
+<input type="text" id="realAddress" placeholder="Si adresse automatique incorrecte, écrivez votre adresse réelle ici">
 <input type="tel" id="phone" placeholder="Numéro de téléphone" required pattern="[0-9]{10}">
 <input type="email" id="email" placeholder="Adresse courriel" required>
 <label for="date" style="margin-bottom:5px; display:block;">Sélectionnez la date souhaitée :</label>
 <input type="date" id="date" required>
-<p style="color:#ffcc00; font-weight:bold; font-size:1em; margin:10px 0;">
-Si l’adresse automatique n’est pas correcte, veuillez écrire votre adresse réelle et je vous rappellerai pour confirmer.
-</p>
 <p style="color: #ffcc00; font-weight:bold; font-size:1.1em; margin:10px 0;">
 VEUILLER PRÉPARER ARGENT LIQUIDE 💵
 </p>
@@ -122,7 +120,7 @@ VEUILLER PRÉPARER ARGENT LIQUIDE 💵
 
 <script>
 // Menu
-function toggleMenu(){ const menu = document.getElementById('sideMenu'); menu.style.right = (menu.style.right==='0px') ? '-250px' : '0px'; }
+function toggleMenu(){ const menu=document.getElementById('sideMenu'); menu.style.right=(menu.style.right==='0px')?'-250px':'0px'; }
 function showSection(id){ document.querySelectorAll('section').forEach(sec=>sec.classList.remove('active')); document.getElementById(id).classList.add('active'); toggleMenu(); }
 
 // Flocons
@@ -141,8 +139,8 @@ L.marker([baseLat,baseLng]).addTo(map).bindPopup("Pelletage Maxime - 304 Rue A.-
 // Fonction Nominatim
 async function getCoordinates(address){
   const url=`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
-  const response = await fetch(url);
-  const data = await response.json();
+  const response=await fetch(url);
+  const data=await response.json();
   if(data.length>0){ return {lat:parseFloat(data[0].lat), lon:parseFloat(data[0].lon)}; }
   else{return null;}
 }
@@ -171,17 +169,23 @@ window.addEventListener("load", () => {
       const url=`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
       const resp=await fetch(url);
       const data=await resp.json();
-      if(data && data.display_name){ addressInput.value=data.display_name; updateZoneMessage(); }
+      if(data && data.display_name){ addressInput.value=data.display_name; }
     },()=>{ alert("Veuillez accepter la localisation pour poursuivre la demande de pelletage."); });
   } else { alert("La géolocalisation n'est pas supportée par votre navigateur."); }
 });
 
-// Mettre à jour la zone quand l'adresse change
-document.getElementById("address").addEventListener("input", updateZoneMessage);
+form.addEventListener("submit", async function(e){
+  e.preventDefault();
+  let name=document.getElementById("name").value.trim();
+  let address=document.getElementById("address").value.trim();
+  const realAddress=document.getElementById("realAddress").value.trim();
+  const phone=document.getElementById("phone").value.trim();
+  const email=document.getElementById("email").value.trim();
+  const date=document.getElementById("date").value;
+  if(!name||!address||!phone||!email||!date){ messageBox.textContent="Veuillez remplir tous les champs."; messageBox.className="error"; messageBox.style.display="block"; return; }
 
-async function updateZoneMessage(){
-  const address=document.getElementById("address").value.trim();
-  if(!address) return;
+  if(realAddress!==""){ address = realAddress; } // utiliser adresse réelle si remplie
+
   const coords=await getCoordinates(address);
   let zoneText="Adresse hors zone autorisée !";
   if(coords){
@@ -191,39 +195,17 @@ async function updateZoneMessage(){
     else{ zoneText="Hors du cercle mauve : non desservi"; }
   }
   document.getElementById("zoneMessage").textContent = zoneText;
-}
 
-form.addEventListener("submit", async function(e){
-  e.preventDefault();
-  const name=document.getElementById("name").value.trim();
-  const address=document.getElementById("address").value.trim();
-  const phone=document.getElementById("phone").value.trim();
-  const email=document.getElementById("email").value.trim();
-  const date=document.getElementById("date").value;
-  const zoneText=document.getElementById("zoneMessage").textContent;
-  if(!name||!address||!phone||!email||!date){ messageBox.textContent="Veuillez remplir tous les champs."; messageBox.className="error"; messageBox.style.display="block"; return; }
-  
   const content=`**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nEmail: ${email}\nDate souhaitée: ${date}\nZone: ${zoneText}`;
   fetch(webhookURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content})})
-  .then(()=>{ messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset(); document.getElementById("zoneMessage").textContent=""; })
+  .then(()=>{ messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset(); })
   .catch(()=>{ messageBox.textContent="❌ Erreur, réessayez."; messageBox.className="error"; messageBox.style.display="block"; });
 });
 
-// Formulaire avis avec persistance
+// Formulaire avis avec stockage local
 const avisForm=document.getElementById("avisForm");
 const avisList=document.getElementById("avisList");
 let avisData=JSON.parse(localStorage.getItem("avisData")||"[]");
-
-function renderAvis(){
-  let html="";
-  let total=0;
-  avisData.forEach(a=>{
-    total+=a.stars;
-    html+=`<p><strong>${a.username}</strong> : ${'⭐'.repeat(a.stars)}<br>${a.message}</p>`;
-  });
-  avisList.innerHTML=html;
-  document.getElementById("averageStars").textContent=(avisData.length>0 ? (total/avisData.length).toFixed(1) : 0);
-}
 renderAvis();
 
 avisForm.addEventListener("submit", function(e){
@@ -238,12 +220,22 @@ avisForm.addEventListener("submit", function(e){
   avisForm.reset();
 });
 
-// Zone Admin pour réinitialiser les avis
+function renderAvis(){
+  let html="";
+  let total=0;
+  avisData.forEach(a=>{
+    total+=a.stars;
+    html+=`<p><strong>${a.username}</strong> : ${'⭐'.repeat(a.stars)}<br>${a.message}</p>`;
+  });
+  avisList.innerHTML=html;
+  document.getElementById("averageStars").textContent=(avisData.length>0 ? (total/avisData.length).toFixed(1) : 0);
+}
+
+// Zone Admin
 document.getElementById("adminBtn").addEventListener("click", function(){
   const adminUser = prompt("Nom d'utilisateur admin :");
   const adminPass = prompt("Mot de passe admin :");
-  // Ici tu peux définir ton nom d'utilisateur et mot de passe
-  if(adminUser==="admin" && adminPass==="1234"){
+  if(adminUser==="Maxime Riopel" && adminPass==="Billy0930"){
     if(confirm("Voulez-vous réinitialiser tous les avis ?")){
       avisData=[];
       localStorage.removeItem("avisData");
