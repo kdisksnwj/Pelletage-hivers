@@ -34,6 +34,7 @@ button:hover { background:#0095d1; }
 #messageBox.success { background: rgba(0,200,0,0.6); }
 #messageBox.error { background: rgba(200,0,0,0.6); }
 footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-top:20px; }
+#distanceInfo { font-weight:bold; font-size:1.1em; margin-bottom:10px; text-align:center; }
 </style>
 </head>
 <body>
@@ -58,6 +59,7 @@ footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-t
 <section id="home" class="active">
 <h2>Bienvenue</h2>
 <p>Service de pelletage rapide et fiable pour vos entrées, trottoirs et stationnements.</p>
+<div id="distanceInfo">Distance autorisée : Cercle bleu 750m / Cercle mauve 950m</div>
 <div id="map" style="height:400px; border-radius:15px; margin-bottom:15px;"></div>
 <p><strong>Remarque :</strong> Les maisons <strong>hors du cercle mauve</strong> ne sont pas desservies.</p>
 <h3>Nos tarifs :</h3>
@@ -116,15 +118,15 @@ VEUILLER PRÉPARER ARGENT LIQUIDE 💵
 </footer>
 
 <script>
-/* Menu */
+// Menu
 function toggleMenu(){ const menu = document.getElementById('sideMenu'); menu.style.right = (menu.style.right==='0px') ? '-250px' : '0px'; }
 function showSection(id){ document.querySelectorAll('section').forEach(sec=>sec.classList.remove('active')); document.getElementById(id).classList.add('active'); toggleMenu(); }
 
-/* Flocons */
+// Flocons
 function createSnowflake(){ const snowflake=document.createElement("div"); snowflake.classList.add("snowflake"); snowflake.textContent="❄"; snowflake.style.left=Math.random()*window.innerWidth+"px"; snowflake.style.animationDuration=(Math.random()*3+2)+"s"; snowflake.style.opacity=Math.random(); snowflake.style.fontSize=(Math.random()*15+10)+"px"; document.body.appendChild(snowflake); setTimeout(()=>snowflake.remove(),5000);}
 setInterval(createSnowflake,200);
 
-/* Carte Leaflet */
+// Carte Leaflet
 const baseLat=45.4000; const baseLng=-72.7330;
 const rayonBleu=0.75; const rayonMauve=0.95;
 var map=L.map('map').setView([baseLat,baseLng],15);
@@ -133,11 +135,31 @@ L.circle([baseLat,baseLng],{color:'blue',fillColor:'#00f',fillOpacity:0.2,radius
 L.circle([baseLat,baseLng],{color:'purple',fillColor:'#800080',fillOpacity:0.1,radius:rayonMauve*1000}).addTo(map);
 L.marker([baseLat,baseLng]).addTo(map).bindPopup("Pelletage Maxime - 304 Rue A.-Knobloch").openPopup();
 
-/* Formulaire pelletage avec webhook */
-const webhookURL="https://discord.com/api/webhooks/1399488282131435580/jP1VGYSHBPhuOnQsn0F5f3hNaVNiPVcZAQ2ewdvOjoBrFGX0m7rddaaXQKd7AP2h2hdy";
-const form=document.getElementById("pelletageForm"); const messageBox=document.getElementById("messageBox");
+/* Fonction Nominatim */
+async function getCoordinates(address){
+  const url=`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+  const response = await fetch(url);
+  const data = await response.json();
+  if(data.length>0){ return {lat:parseFloat(data[0].lat), lon:parseFloat(data[0].lon)}; }
+  else{return null;}
+}
 
-form.addEventListener("submit",function(e){
+/* Distance Haversine */
+function distanceKm(lat1, lon1, lat2, lon2){
+  const R=6371;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  const c=2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R*c;
+}
+
+/* Formulaire pelletage avec webhook et distance réelle */
+const webhookURL="https://discord.com/api/webhooks/1399488282131435580/jP1VGYSHBPhuOnQsn0F5f3hNaVNiPVcZAQ2ewdvOjoBrFGX0m7rddaaXQKd7AP2h2hdy";
+const form=document.getElementById("pelletageForm"); 
+const messageBox=document.getElementById("messageBox");
+
+form.addEventListener("submit", async function(e){
 e.preventDefault();
 const name=document.getElementById("name").value.trim();
 const address=document.getElementById("address").value.trim();
@@ -145,15 +167,19 @@ const phone=document.getElementById("phone").value.trim();
 const email=document.getElementById("email").value.trim();
 const date=document.getElementById("date").value;
 if(!name||!address||!phone||!email||!date){ messageBox.textContent="Veuillez remplir tous les champs."; messageBox.className="error"; messageBox.style.display="block"; return; }
-/* Simulation de distance pour exemple */
-let distance=Math.random()<0.5?0.5:1.0; 
-let priceMsg="";
-if(distance<=rayonBleu){priceMsg="✅ Adresse dans la zone 10$ !";}
-else if(distance<=rayonMauve){priceMsg="✅ Adresse dans la zone 20$ !";}
-else{priceMsg="❌ Adresse trop loin ! Nous ne desservons pas cette zone.";}
-document.getElementById("zoneMessage").textContent=priceMsg;
 
-if(distance>rayonMauve){ return; } /* n’envoie pas webhook si trop loin */
+const coords = await getCoordinates(address);
+if(!coords){ document.getElementById("zoneMessage").textContent="Adresse introuvable"; return; }
+
+const dist = distanceKm(baseLat, baseLng, coords.lat, coords.lon);
+let priceMsg="";
+if(dist<=rayonBleu){ priceMsg="✅ Adresse dans zone 10$ !";}
+else if(dist<=rayonMauve){ priceMsg="✅ Adresse dans zone 20$ !";}
+else{ priceMsg="❌ Adresse trop loin ! Nous ne desservons pas cette zone."; }
+
+document.getElementById("zoneMessage").textContent=priceMsg;
+if(dist>rayonMauve){ return; }
+
 const content=`**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nEmail: ${email}\nDate souhaitée: ${date}\nPrix estimé: ${priceMsg}`;
 fetch(webhookURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content})})
 .then(()=>{ messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset(); })
