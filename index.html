@@ -3,41 +3,104 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pelletage Yannick</title>
+  <title>Pelletage Maxime</title>
   <style>
-    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f8ff; }
-    header { background:#1e90ff; color:white; text-align:center; padding:20px; }
-    section { padding:20px; max-width:800px; margin:auto; }
-    h1 { margin:0; }
-    .contact { background:#eee; padding:15px; border-radius:5px; }
-    footer { text-align:center; padding:10px; background:#ddd; margin-top:20px; }
+    body { margin:0; padding:0; font-family: Arial, sans-serif; color: #fff; background:#001f3f; overflow-x:hidden; }
+    header { text-align:center; padding:40px 20px; background: rgba(0,0,50,0.6); }
+    header h1 { margin:0; font-size:2.5em; }
+    header p { font-size:1.2em; }
+    section { padding:30px; max-width:800px; margin:auto; background: rgba(0,0,0,0.4); border-radius:10px; margin-top:20px; }
+    h2 { border-bottom:2px solid #00bfff; padding-bottom:10px; }
+    ul { list-style:none; padding:0; }
+    ul li::before { content: "❄️ "; }
+    .contact { background: rgba(255,255,255,0.1); padding:15px; border-radius:5px; }
+    footer { text-align:center; padding:15px; background: rgba(0,0,50,0.6); margin-top:30px; }
+    form { display:flex; flex-direction:column; gap:15px; }
+    input, select, button { padding:10px; border-radius:5px; border:none; font-size:1em; }
+    button { background:#00bfff; color:#001f3f; cursor:pointer; font-weight:bold; }
+    .snowflake { position:fixed; top:-10px; color:white; font-size:1.5em; animation-name: fall; animation-timing-function: linear; }
+    @keyframes fall { 0% { transform: translateY(0); opacity:1; } 100% { transform: translateY(100vh); opacity:0.5; } }
   </style>
 </head>
 <body>
-  <header>
-    <h1>❄️ Pelletage Yannick ❄️</h1>
-    <p>Service rapide et fiable pour vos entrées, trottoirs et stationnements</p>
-  </header>
 
-  <section>
-    <h2>Mes services</h2>
-    <ul>
-      <li>Pelletage d’entrées de garage</li>
-      <li>Déneigement de trottoirs</li>
-      <li>Déglaçage et sablage</li>
-    </ul>
-  </section>
+<header>
+  <h1>❄️ Pelletage Maxime ❄️</h1>
+  <p>Service rapide et fiable pour vos entrées, trottoirs et stationnements</p>
+</header>
 
-  <section>
-    <h2>Contact</h2>
-    <div class="contact">
-      <p>Téléphone : <strong>514-000-0000</strong></p>
-      <p>Email : <strong>ton.email@example.com</strong></p>
-    </div>
-  </section>
+<section>
+  <h2>Mes services</h2>
+  <ul>
+    <li>Pelletage d’entrées de garage</li>
+    <li>Déneigement de trottoirs</li>
+    <li>Déglaçage et sablage</li>
+  </ul>
+</section>
 
-  <footer>
-    <p>© 2025 Pelletage Yannick – Tous droits réservés</p>
-  </footer>
+<section>
+  <h2>Contact</h2>
+  <div class="contact">
+    <p>Téléphone : <strong>514-000-0000</strong></p>
+    <p>Email : <strong>maxime@example.com</strong></p>
+  </div>
+</section>
+
+<section>
+  <h2>Demander un pelletage</h2>
+  <form id="pelletageForm">
+    <input type="text" id="name" placeholder="Ton nom" required>
+    <input type="text" id="address" placeholder="Adresse" required>
+    <input type="tel" id="phone" placeholder="Numéro de téléphone" required>
+    <input type="date" id="date" required>
+    <button type="submit">Envoyer la demande</button>
+  </form>
+</section>
+
+<footer>
+  <p>© 2025 Pelletage Maxime – Tous droits réservés</p>
+</footer>
+
+<script>
+  // Animation des flocons
+  function createSnowflake() {
+    const snowflake = document.createElement("div");
+    snowflake.classList.add("snowflake");
+    snowflake.textContent = "❄";
+    snowflake.style.left = Math.random() * window.innerWidth + "px";
+    snowflake.style.animationDuration = (Math.random() * 3 + 2) + "s"; 
+    snowflake.style.opacity = Math.random();
+    snowflake.style.fontSize = (Math.random() * 15 + 10) + "px";
+    document.body.appendChild(snowflake);
+    setTimeout(() => snowflake.remove(), 5000);
+  }
+  setInterval(createSnowflake, 200);
+
+  // Formulaire vers Discord
+  const webhookURL = "TON_WEBHOOK_DISCORD_ICI"; // 🔹 Mets ici ton webhook Discord
+
+  document.getElementById("pelletageForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const name = document.getElementById("name").value;
+    const address = document.getElementById("address").value;
+    const phone = document.getElementById("phone").value;
+    const date = document.getElementById("date").value;
+
+    const content = `Nouvelle demande de pelletage :\nNom : ${name}\nAdresse : ${address}\nTéléphone : ${phone}\nDate souhaitée : ${date}`;
+
+    fetch(webhookURL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content })
+    })
+    .then(() => alert("Votre demande a été envoyée !"))
+    .catch(() => alert("Erreur lors de l'envoi, réessayez."));
+
+    // Reset du formulaire
+    this.reset();
+  });
+</script>
+
 </body>
 </html>
