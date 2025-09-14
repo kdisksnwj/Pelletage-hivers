@@ -1,35 +1,68 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pelletage Maxime</title>
-  <style>
-    body { margin:0; padding:0; font-family: Arial, sans-serif; color: #fff; background:#001f3f; overflow-x:hidden; }
-    header { text-align:center; padding:40px 20px; background: rgba(0,0,50,0.6); }
-    header h1 { margin:0; font-size:2.5em; }
-    header p { font-size:1.2em; }
-    section { padding:30px; max-width:800px; margin:auto; background: rgba(0,0,0,0.4); border-radius:10px; margin-top:20px; }
-    h2 { border-bottom:2px solid #00bfff; padding-bottom:10px; }
-    ul { list-style:none; padding:0; }
-    ul li::before { content: "❄️ "; }
-    .contact { background: rgba(255,255,255,0.1); padding:15px; border-radius:5px; }
-    footer { text-align:center; padding:15px; background: rgba(0,0,50,0.6); margin-top:30px; }
-    form { display:flex; flex-direction:column; gap:15px; }
-    input, select, button { padding:10px; border-radius:5px; border:none; font-size:1em; }
-    button { background:#00bfff; color:#001f3f; cursor:pointer; font-weight:bold; }
-    .snowflake { position:fixed; top:-10px; color:white; font-size:1.5em; animation-name: fall; animation-timing-function: linear; }
-    @keyframes fall { 0% { transform: translateY(0); opacity:1; } 100% { transform: translateY(100vh); opacity:0.5; } }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pelletage Maxime</title>
+<style>
+  body { margin:0; padding:0; font-family:Arial,sans-serif; color:#fff; background:linear-gradient(#001f3f,#003366); overflow-x:hidden; }
+  
+  header { padding:20px; background:rgba(0,0,50,0.7); position:relative; text-align:center; }
+  header h1 { margin:0; font-size:2em; }
+  header p { margin:5px 0; }
+
+  /* Hamburger menu */
+  .hamburger { position:absolute; top:20px; right:20px; font-size:2em; cursor:pointer; }
+  nav { position:fixed; top:0; right:-250px; width:250px; height:100%; background:rgba(0,0,50,0.95); transition:0.3s; display:flex; flex-direction:column; padding-top:60px; }
+  nav a { color:#fff; text-decoration:none; padding:15px 20px; font-size:1.1em; border-bottom:1px solid rgba(255,255,255,0.1); }
+  nav a:hover { background:rgba(0,191,255,0.3); }
+
+  /* Sections */
+  section { display:none; padding:30px; max-width:800px; margin:50px auto; background: rgba(0,0,0,0.5); border-radius:15px; }
+  section.active { display:block; }
+  h2 { border-bottom:2px solid #00bfff; padding-bottom:10px; margin-bottom:20px; }
+
+  ul { list-style:none; padding:0; }
+  ul li::before { content:"❄️ "; }
+
+  input, button { width:100%; padding:12px; margin-bottom:10px; border-radius:6px; border:none; font-size:1em; }
+  button { background:#00bfff; color:#001f3f; font-weight:bold; cursor:pointer; transition:0.3s; }
+  button:hover { background:#0095d1; }
+
+  /* Snowflakes */
+  .snowflake { position:fixed; top:-10px; color:white; font-size:1.5em; animation-name:fall; animation-timing-function: linear; }
+  @keyframes fall { 0%{ transform:translateY(0); opacity:1; } 100%{ transform:translateY(100vh); opacity:0.5; } }
+
+  /* Message */
+  #messageBox { text-align:center; margin-top:10px; padding:10px; border-radius:8px; display:none; font-weight:bold; }
+  #messageBox.success { background: rgba(0,200,0,0.6); }
+  #messageBox.error { background: rgba(200,0,0,0.6); }
+
+  footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-top:20px; }
+
+</style>
 </head>
 <body>
 
 <header>
   <h1>❄️ Pelletage Maxime ❄️</h1>
-  <p>Service rapide et fiable pour vos entrées, trottoirs et stationnements</p>
+  <p>Service rapide et fiable</p>
+  <div class="hamburger" onclick="toggleMenu()">☰</div>
 </header>
 
-<section>
+<nav id="sideMenu">
+  <a href="#" onclick="showSection('home')">Accueil</a>
+  <a href="#" onclick="showSection('services')">Mes services</a>
+  <a href="#" onclick="showSection('contact')">Contact</a>
+  <a href="#" onclick="showSection('demande')">Demander un pelletage</a>
+</nav>
+
+<section id="home" class="active">
+  <h2>Bienvenue</h2>
+  <p>Service de pelletage rapide et fiable pour vos entrées, trottoirs et stationnements.</p>
+</section>
+
+<section id="services">
   <h2>Mes services</h2>
   <ul>
     <li>Pelletage d’entrées de garage</li>
@@ -38,22 +71,21 @@
   </ul>
 </section>
 
-<section>
+<section id="contact">
   <h2>Contact</h2>
-  <div class="contact">
-    <p>Téléphone : <strong>514-000-0000</strong></p>
-    <p>Email : <strong>maxime@example.com</strong></p>
-  </div>
+  <p>Téléphone : <strong>514-000-0000</strong></p>
+  <p>Email : <strong>maxime@example.com</strong></p>
 </section>
 
-<section>
+<section id="demande">
   <h2>Demander un pelletage</h2>
   <form id="pelletageForm">
     <input type="text" id="name" placeholder="Ton nom" required>
-    <input type="text" id="address" placeholder="Adresse" required>
-    <input type="tel" id="phone" placeholder="Numéro de téléphone" required>
+    <input type="text" id="address" placeholder="Adresse complète" required>
+    <input type="tel" id="phone" placeholder="Numéro de téléphone" required pattern="[0-9]{10}">
     <input type="date" id="date" required>
     <button type="submit">Envoyer la demande</button>
+    <div id="messageBox"></div>
   </form>
 </section>
 
@@ -62,7 +94,19 @@
 </footer>
 
 <script>
-  // Animation des flocons
+  // Menu latéral
+  function toggleMenu(){
+    const menu = document.getElementById('sideMenu');
+    menu.style.right = (menu.style.right === "0px") ? "-250px" : "0px";
+  }
+
+  function showSection(id){
+    document.querySelectorAll('section').forEach(sec=>sec.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    toggleMenu();
+  }
+
+  // Snowflakes
   function createSnowflake() {
     const snowflake = document.createElement("div");
     snowflake.classList.add("snowflake");
@@ -76,29 +120,25 @@
   }
   setInterval(createSnowflake, 200);
 
-  // Formulaire vers Discord
-  const webhookURL = "TON_WEBHOOK_DISCORD_ICI"; // 🔹 Mets ici ton webhook Discord
+  // Formulaire Discord
+  const webhookURL = "https://discord.com/api/webhooks/1399488282131435580/jP1VGYSHBPhuOnQsn0F5f3hNaVNiPVcZAQ2ewdvOjoBrFGX0m7rddaaXQKd7AP2h2hdy";
+  const form = document.getElementById("pelletageForm");
+  const messageBox = document.getElementById("messageBox");
 
-  document.getElementById("pelletageForm").addEventListener("submit", function(e) {
+  form.addEventListener("submit", function(e){
     e.preventDefault();
-
-    const name = document.getElementById("name").value;
-    const address = document.getElementById("address").value;
-    const phone = document.getElementById("phone").value;
+    const name = document.getElementById("name").value.trim();
+    const address = document.getElementById("address").value.trim();
+    const phone = document.getElementById("phone").value.trim();
     const date = document.getElementById("date").value;
-
-    const content = `Nouvelle demande de pelletage :\nNom : ${name}\nAdresse : ${address}\nTéléphone : ${phone}\nDate souhaitée : ${date}`;
-
-    fetch(webhookURL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content })
-    })
-    .then(() => alert("Votre demande a été envoyée !"))
-    .catch(() => alert("Erreur lors de l'envoi, réessayez."));
-
-    // Reset du formulaire
-    this.reset();
+    if(!name||!address||!phone||!date){
+      messageBox.textContent="Veuillez remplir tous les champs.";
+      messageBox.className="error"; messageBox.style.display="block"; return;
+    }
+    const content = `**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nDate souhaitée: ${date}`;
+    fetch(webhookURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content})})
+      .then(()=>{messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset();})
+      .catch(()=>{messageBox.textContent="❌ Erreur, réessayez."; messageBox.className="error"; messageBox.style.display="block";});
   });
 </script>
 
