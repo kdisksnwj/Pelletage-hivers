@@ -171,20 +171,17 @@ window.addEventListener("load", () => {
       const url=`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
       const resp=await fetch(url);
       const data=await resp.json();
-      if(data && data.display_name){ addressInput.value=data.display_name; }
+      if(data && data.display_name){ addressInput.value=data.display_name; updateZoneMessage(); }
     },()=>{ alert("Veuillez accepter la localisation pour poursuivre la demande de pelletage."); });
   } else { alert("La géolocalisation n'est pas supportée par votre navigateur."); }
 });
 
-form.addEventListener("submit", async function(e){
-  e.preventDefault();
-  const name=document.getElementById("name").value.trim();
+// Mettre à jour la zone quand l'adresse change
+document.getElementById("address").addEventListener("input", updateZoneMessage);
+
+async function updateZoneMessage(){
   const address=document.getElementById("address").value.trim();
-  const phone=document.getElementById("phone").value.trim();
-  const email=document.getElementById("email").value.trim();
-  const date=document.getElementById("date").value;
-  if(!name||!address||!phone||!email||!date){ messageBox.textContent="Veuillez remplir tous les champs."; messageBox.className="error"; messageBox.style.display="block"; return; }
-  
+  if(!address) return;
   const coords=await getCoordinates(address);
   let zoneText="Adresse hors zone autorisée !";
   if(coords){
@@ -194,28 +191,28 @@ form.addEventListener("submit", async function(e){
     else{ zoneText="Hors du cercle mauve : non desservi"; }
   }
   document.getElementById("zoneMessage").textContent = zoneText;
+}
 
+form.addEventListener("submit", async function(e){
+  e.preventDefault();
+  const name=document.getElementById("name").value.trim();
+  const address=document.getElementById("address").value.trim();
+  const phone=document.getElementById("phone").value.trim();
+  const email=document.getElementById("email").value.trim();
+  const date=document.getElementById("date").value;
+  const zoneText=document.getElementById("zoneMessage").textContent;
+  if(!name||!address||!phone||!email||!date){ messageBox.textContent="Veuillez remplir tous les champs."; messageBox.className="error"; messageBox.style.display="block"; return; }
+  
   const content=`**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nEmail: ${email}\nDate souhaitée: ${date}\nZone: ${zoneText}`;
   fetch(webhookURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content})})
-  .then(()=>{ messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset(); })
+  .then(()=>{ messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset(); document.getElementById("zoneMessage").textContent=""; })
   .catch(()=>{ messageBox.textContent="❌ Erreur, réessayez."; messageBox.className="error"; messageBox.style.display="block"; });
 });
 
-// Formulaire avis
+// Formulaire avis avec persistance
 const avisForm=document.getElementById("avisForm");
 const avisList=document.getElementById("avisList");
-let avisData=[];
-
-avisForm.addEventListener("submit", function(e){
-  e.preventDefault();
-  const username=document.getElementById("username").value.trim();
-  const stars=parseInt(document.getElementById("stars").value);
-  const message=document.getElementById("message").value.trim();
-  if(!username || isNaN(stars) || stars<0 || stars>5){ alert("Nom et étoiles valides requis."); return; }
-  avisData.push({username, stars, message});
-  renderAvis();
-  avisForm.reset();
-});
+let avisData=JSON.parse(localStorage.getItem("avisData")||"[]");
 
 function renderAvis(){
   let html="";
@@ -227,6 +224,36 @@ function renderAvis(){
   avisList.innerHTML=html;
   document.getElementById("averageStars").textContent=(avisData.length>0 ? (total/avisData.length).toFixed(1) : 0);
 }
+renderAvis();
+
+avisForm.addEventListener("submit", function(e){
+  e.preventDefault();
+  const username=document.getElementById("username").value.trim();
+  const stars=parseInt(document.getElementById("stars").value);
+  const message=document.getElementById("message").value.trim();
+  if(!username || isNaN(stars) || stars<0 || stars>5){ alert("Nom et étoiles valides requis."); return; }
+  avisData.push({username, stars, message});
+  localStorage.setItem("avisData", JSON.stringify(avisData));
+  renderAvis();
+  avisForm.reset();
+});
+
+// Zone Admin pour réinitialiser les avis
+document.getElementById("adminBtn").addEventListener("click", function(){
+  const adminUser = prompt("Nom d'utilisateur admin :");
+  const adminPass = prompt("Mot de passe admin :");
+  // Ici tu peux définir ton nom d'utilisateur et mot de passe
+  if(adminUser==="admin" && adminPass==="1234"){
+    if(confirm("Voulez-vous réinitialiser tous les avis ?")){
+      avisData=[];
+      localStorage.removeItem("avisData");
+      renderAvis();
+      alert("Avis réinitialisés.");
+    }
+  } else {
+    alert("Identifiants incorrects !");
+  }
+});
 </script>
 
 </body>
