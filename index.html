@@ -31,8 +31,8 @@
   ul { list-style:none; padding:0; }
   ul li::before { content:"❄️ "; }
 
-  input, button { width:100%; padding:12px; margin-bottom:10px; border-radius:6px; border:none; font-size:1em; }
-  input:focus { outline:none; border:2px solid #00bfff; }
+  input, button, textarea { width:100%; padding:12px; margin-bottom:10px; border-radius:6px; border:none; font-size:1em; }
+  input:focus, textarea:focus { outline:none; border:2px solid #00bfff; }
   button { background:#00bfff; color:#001f3f; font-weight:bold; cursor:pointer; transition:0.3s; }
   button:hover { background:#0095d1; }
 
@@ -61,10 +61,11 @@
 <nav id="sideMenu">
   <a href="#" onclick="showSection('home')">Accueil</a>
   <a href="#" onclick="showSection('services')">Mes services</a>
-  <a href="#" onclick="showSection('contact')">Contact</a>
   <a href="#" onclick="showSection('demande')">Demander un pelletage</a>
+  <a href="#" onclick="showSection('avis')">Avis</a>
 </nav>
 
+<!-- Accueil -->
 <section id="home" class="active">
   <h2>Bienvenue</h2>
   <p>Service de pelletage rapide et fiable pour vos entrées, trottoirs et stationnements.</p>
@@ -76,6 +77,7 @@
   <p>Ces prix sont indicatifs et peuvent varier selon la distance et la taille de votre propriété. Pour un tarif exact, remplissez le formulaire de demande de pelletage.</p>
 </section>
 
+<!-- Services -->
 <section id="services">
   <h2>Mes services</h2>
   <ul>
@@ -87,12 +89,7 @@
   </ul>
 </section>
 
-<section id="contact">
-  <h2>Contact</h2>
-  <p>Téléphone : <strong>514-000-0000</strong></p>
-  <p>Email : <strong>maxime@example.com</strong></p>
-</section>
-
+<!-- Demande -->
 <section id="demande">
   <h2>Demander un pelletage</h2>
   <form id="pelletageForm">
@@ -107,16 +104,32 @@
   </form>
 </section>
 
+<!-- Avis -->
+<section id="avis">
+  <h2>Avis de nos clients</h2>
+  <p>Étoiles moyennes : <span id="averageStars">0</span>/5 ⭐</p>
+  
+  <form id="avisForm">
+    <input type="text" id="username" placeholder="Nom d'utilisateur" required>
+    <label for="stars">Nombre d'étoiles (0 à 5) :</label>
+    <input type="number" id="stars" min="0" max="5" required>
+    <textarea id="message" placeholder="Votre avis (optionnel)"></textarea>
+    <button type="submit">Envoyer l'avis</button>
+  </form>
+
+  <div id="avisList"></div>
+</section>
+
 <footer>
   <p>© 2025 Pelletage Maxime – Tous droits réservés</p>
 </footer>
 
 <script>
+  // Menu
   function toggleMenu(){
     const menu = document.getElementById('sideMenu');
     menu.style.right = (menu.style.right === "0px") ? "-250px" : "0px";
   }
-
   function showSection(id){
     document.querySelectorAll('section').forEach(sec=>sec.classList.remove('active'));
     document.getElementById(id).classList.add('active');
@@ -171,6 +184,43 @@
       messageBox.textContent="❌ Erreur, réessayez.";
       messageBox.className="error"; messageBox.style.display="block";
     });
+  });
+
+  // Gestion des avis
+  const avisForm = document.getElementById("avisForm");
+  const avisList = document.getElementById("avisList");
+  const averageStars = document.getElementById("averageStars");
+
+  let avisData = JSON.parse(localStorage.getItem("avisData") || "[]");
+
+  function updateAvisDisplay() {
+    avisList.innerHTML = "";
+    let totalStars = 0;
+    avisData.forEach(avis => {
+      totalStars += parseInt(avis.stars);
+      const div = document.createElement("div");
+      div.style.background="rgba(0,0,0,0.5)";
+      div.style.padding="10px";
+      div.style.margin="10px 0";
+      div.style.borderRadius="8px";
+      div.innerHTML = `<strong>${avis.username}</strong> - ${avis.stars} ⭐<br>${avis.message || ""}`;
+      avisList.appendChild(div);
+    });
+    averageStars.textContent = avisData.length ? (totalStars / avisData.length).toFixed(1) : "0";
+  }
+
+  updateAvisDisplay();
+
+  avisForm.addEventListener("submit", e=>{
+    e.preventDefault();
+    const username = document.getElementById("username").value.trim();
+    const stars = document.getElementById("stars").value;
+    const message = document.getElementById("message").value.trim();
+    if(!username || stars === "") return alert("Veuillez remplir le nom et la note.");
+    avisData.push({username, stars, message});
+    localStorage.setItem("avisData", JSON.stringify(avisData));
+    updateAvisDisplay();
+    avisForm.reset();
   });
 </script>
 
