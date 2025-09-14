@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pelletage Maxime</title>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <style>
 body { margin:0; padding:0; font-family:Arial,sans-serif; color:#fff; background:linear-gradient(#001f3f,#003366); overflow-x:hidden; }
 
@@ -64,12 +70,15 @@ footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-t
 <section id="home" class="active">
 <h2>Bienvenue</h2>
 <p>Service de pelletage rapide et fiable pour vos entrées, trottoirs et stationnements.</p>
+
+<div id="map" style="height:400px; border-radius:15px; margin-bottom:15px;"></div>
+<p><strong>Remarque :</strong> Les maisons <strong>hors du contour bleu</strong> coûteront 20$. Les maisons <strong>dans le contour bleu</strong> coûteront 10$.</p>
+
 <h3>Nos tarifs :</h3>
 <ul>
 <li>Pelletage : 10$ (peut aller jusqu’à 20$ si votre maison est loin)</li>
 <li>Ajout de sel : 2$ (peut aller jusqu’à 10$ si votre maison est loin)</li>
 </ul>
-<p>Ces prix sont indicatifs et peuvent varier selon la distance et la taille de votre propriété. Pour un tarif exact, remplissez le formulaire de demande de pelletage.</p>
 </section>
 
 <!-- Services -->
@@ -90,6 +99,7 @@ footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-t
 <form id="pelletageForm">
 <input type="text" id="name" placeholder="Ton nom" required>
 <input type="text" id="address" placeholder="Adresse complète" required>
+<p id="zoneMessage" style="font-weight:bold;"></p>
 <input type="tel" id="phone" placeholder="Numéro de téléphone" required pattern="[0-9]{10}">
 <input type="email" id="email" placeholder="Adresse courriel" required>
 <label for="date" style="margin-bottom:5px; display:block;">Sélectionnez la date souhaitée :</label>
@@ -146,6 +156,16 @@ footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-t
   }
   setInterval(createSnowflake, 200);
 
+  // Carte Leaflet
+  const baseLat = 45.3998;
+  const baseLng = -72.7335;
+  var map = L.map('map').setView([baseLat, baseLng], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+  L.circle([baseLat, baseLng], { color: 'blue', fillColor: '#00f', fillOpacity: 0.2, radius: 1000 }).addTo(map);
+  L.marker([baseLat, baseLng]).addTo(map).bindPopup("Pelletage Maxime - 304 Rue A.-Knobloch").openPopup();
+
   // Formulaire Discord
   const webhookURL = "https://discord.com/api/webhooks/1399488282131435580/jP1VGYSHBPhuOnQsn0F5f3hNaVNiPVcZAQ2ewdvOjoBrFGX0m7rddaaXQKd7AP2h2hdy";
   const form = document.getElementById("pelletageForm");
@@ -168,7 +188,7 @@ footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-t
     .catch(()=>{ messageBox.textContent="❌ Erreur, réessayez."; messageBox.className="error"; messageBox.style.display="block"; });
   });
 
-  // Gestion des avis
+  // Avis
   const avisForm = document.getElementById("avisForm");
   const avisList = document.getElementById("avisList");
   const averageStars = document.getElementById("averageStars");
@@ -177,19 +197,17 @@ footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-t
   function updateAvisDisplay() {
     avisList.innerHTML = "";
     let totalStars = 0;
-    avisData.forEach(avis => {
-      totalStars += parseInt(avis.stars);
+    avisData.forEach(avis=>{
+      totalStars += Number(avis.stars);
       const div = document.createElement("div");
-      div.style.background="rgba(0,0,0,0.5)";
-      div.style.padding="10px";
-      div.style.margin="10px 0";
-      div.style.borderRadius="8px";
-      div.innerHTML = `<strong>${avis.username}</strong> - ${avis.stars} ⭐<br>${avis.message || ""}`;
+      div.style.background="rgba(0,0,50,0.3)";
+      div.style.padding="10px"; div.style.margin="5px 0"; div.style.borderRadius="6px";
+      div.innerHTML=`<strong>${avis.username}</strong> - ⭐${avis.stars}<br>${avis.message}`;
       avisList.appendChild(div);
     });
-    averageStars.textContent = avisData.length ? (totalStars / avisData.length).toFixed(1) : "0";
+    averageStars.textContent = avisData.length? (totalStars/avisData.length).toFixed(1) : 0;
+    localStorage.setItem("avisData", JSON.stringify(avisData));
   }
-
   updateAvisDisplay();
 
   avisForm.addEventListener("submit", e=>{
@@ -197,30 +215,41 @@ footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-t
     const username = document.getElementById("username").value.trim();
     const stars = document.getElementById("stars").value;
     const message = document.getElementById("message").value.trim();
-    if(!username || stars === "") return alert("Veuillez remplir le nom et la note.");
+    if(!username || stars==="") return;
     avisData.push({username, stars, message});
-    localStorage.setItem("avisData", JSON.stringify(avisData));
     updateAvisDisplay();
     avisForm.reset();
   });
 
-  // Zone Admin
-  document.getElementById("adminBtn").addEventListener("click", () => {
+  // Admin reset
+  document.getElementById("adminBtn").addEventListener("click", ()=>{
     const username = prompt("Nom d'utilisateur :");
     const password = prompt("Mot de passe :");
-    if(username === "Maxime Riopel" && password === "Billy0930") {
-      alert("Connexion réussie ! Vous pouvez maintenant réinitialiser les avis.");
-      if(confirm("Voulez-vous vraiment supprimer tous les avis ?")) {
-        localStorage.removeItem("avisData");
-        avisData = [];
-        updateAvisDisplay();
+    if(username==="Maxime Riopel" && password==="Billy0930"){
+      if(confirm("Voulez-vous vraiment supprimer tous les avis ?")){
+        localStorage.removeItem("avisData"); avisData=[]; updateAvisDisplay();
         alert("Tous les avis ont été réinitialisés.");
       }
-    } else {
-      alert("Nom d'utilisateur ou mot de passe incorrect.");
-    }
+    } else alert("Nom d'utilisateur ou mot de passe incorrect.");
+  });
+
+  // Vérification zone pied simple
+  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2){
+    const R = 6371;
+    const dLat = (lat2-lat1)*Math.PI/180;
+    const dLon = (lon2-lon1)*Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R*c;
+  }
+
+  document.getElementById("address").addEventListener("blur", ()=>{
+    const address = document.getElementById("address").value;
+    if(!address) return;
+    // Ici tu peux appeler l'API Google Maps Geocoding si tu veux vérif plus précise
+    // Pour simplification, on simule que toute adresse est dans la zone
+    document.getElementById("zoneMessage").textContent="✅ Adresse vérifiée (simulation, remplacer par API Google Maps pour réel)";
   });
 </script>
-
 </body>
 </html>
