@@ -13,12 +13,12 @@
 
   /* Hamburger menu */
   .hamburger { position:absolute; top:20px; right:20px; font-size:2em; cursor:pointer; }
-  nav { position:fixed; top:0; right:-250px; width:250px; height:100%; background:rgba(0,0,50,0.95); transition:0.3s; display:flex; flex-direction:column; padding-top:60px; }
+  nav { position:fixed; top:0; right:-250px; width:250px; height:100%; background:rgba(0,0,50,0.95); transition:0.3s; display:flex; flex-direction:column; padding-top:60px; z-index:1000; }
   nav a { color:#fff; text-decoration:none; padding:15px 20px; font-size:1.1em; border-bottom:1px solid rgba(255,255,255,0.1); }
   nav a:hover { background:rgba(0,191,255,0.3); }
 
   /* Sections */
-  section { display:none; padding:30px; max-width:800px; margin:50px auto; background: rgba(0,0,0,0.5); border-radius:15px; }
+  section { display:none; padding:30px; max-width:800px; margin:50px auto; background: rgba(0,0,0,0.5); border-radius:15px; transition:0.5s; }
   section.active { display:block; }
   h2 { border-bottom:2px solid #00bfff; padding-bottom:10px; margin-bottom:20px; }
 
@@ -26,11 +26,12 @@
   ul li::before { content:"❄️ "; }
 
   input, button { width:100%; padding:12px; margin-bottom:10px; border-radius:6px; border:none; font-size:1em; }
+  input:focus { outline:none; border:2px solid #00bfff; }
   button { background:#00bfff; color:#001f3f; font-weight:bold; cursor:pointer; transition:0.3s; }
   button:hover { background:#0095d1; }
 
   /* Snowflakes */
-  .snowflake { position:fixed; top:-10px; color:white; font-size:1.5em; animation-name:fall; animation-timing-function: linear; }
+  .snowflake { position:fixed; top:-10px; color:white; font-size:1.5em; animation-name:fall; animation-timing-function: linear; z-index:999; }
   @keyframes fall { 0%{ transform:translateY(0); opacity:1; } 100%{ transform:translateY(100vh); opacity:0.5; } }
 
   /* Message */
@@ -39,7 +40,6 @@
   #messageBox.error { background: rgba(200,0,0,0.6); }
 
   footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-top:20px; }
-
 </style>
 </head>
 <body>
@@ -83,6 +83,7 @@
     <input type="text" id="name" placeholder="Ton nom" required>
     <input type="text" id="address" placeholder="Adresse complète" required>
     <input type="tel" id="phone" placeholder="Numéro de téléphone" required pattern="[0-9]{10}">
+    <input type="email" id="email" placeholder="Adresse courriel" required>
     <input type="date" id="date" required>
     <button type="submit">Envoyer la demande</button>
     <div id="messageBox"></div>
@@ -106,7 +107,7 @@
     toggleMenu();
   }
 
-  // Snowflakes
+  // Flocons de neige
   function createSnowflake() {
     const snowflake = document.createElement("div");
     snowflake.classList.add("snowflake");
@@ -130,15 +131,30 @@
     const name = document.getElementById("name").value.trim();
     const address = document.getElementById("address").value.trim();
     const phone = document.getElementById("phone").value.trim();
+    const email = document.getElementById("email").value.trim();
     const date = document.getElementById("date").value;
-    if(!name||!address||!phone||!date){
+
+    if(!name||!address||!phone||!email||!date){
       messageBox.textContent="Veuillez remplir tous les champs.";
       messageBox.className="error"; messageBox.style.display="block"; return;
     }
-    const content = `**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nDate souhaitée: ${date}`;
-    fetch(webhookURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content})})
-      .then(()=>{messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset();})
-      .catch(()=>{messageBox.textContent="❌ Erreur, réessayez."; messageBox.className="error"; messageBox.style.display="block";});
+
+    const content = `**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nEmail: ${email}\nDate souhaitée: ${date}`;
+
+    fetch(webhookURL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({content})
+    })
+    .then(()=>{
+      messageBox.textContent="✅ Votre demande a été envoyée !";
+      messageBox.className="success"; messageBox.style.display="block";
+      form.reset();
+    })
+    .catch(()=>{
+      messageBox.textContent="❌ Erreur, réessayez.";
+      messageBox.className="error"; messageBox.style.display="block";
+    });
   });
 </script>
 
