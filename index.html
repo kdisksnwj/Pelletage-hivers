@@ -34,6 +34,7 @@ button:hover { background:#0095d1; }
 #messageBox.success { background: rgba(0,200,0,0.6); }
 #messageBox.error { background: rgba(200,0,0,0.6); }
 footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-top:20px; }
+#zoneMessage { font-weight:bold; margin-bottom:10px; }
 #distanceInfo { font-weight:bold; font-size:1.1em; margin-bottom:10px; text-align:center; }
 </style>
 </head>
@@ -86,7 +87,7 @@ footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-t
 <form id="pelletageForm">
 <input type="text" id="name" placeholder="Ton nom" required>
 <input type="text" id="address" placeholder="Adresse complète" required>
-<p id="zoneMessage" style="font-weight:bold;"></p>
+<p id="zoneMessage"></p>
 <input type="tel" id="phone" placeholder="Numéro de téléphone" required pattern="[0-9]{10}">
 <input type="email" id="email" placeholder="Adresse courriel" required>
 <label for="date" style="margin-bottom:5px; display:block;">Sélectionnez la date souhaitée :</label>
@@ -119,7 +120,7 @@ VEUILLER PRÉPARER ARGENT LIQUIDE 💵
 
 <script>
 // Menu
-function toggleMenu(){ const menu = document.getElementById('sideMenu'); menu.style.right = (menu.style.right==='0px') ? '-250px' : '0px'; }
+function toggleMenu(){ const menu=document.getElementById('sideMenu'); menu.style.right=(menu.style.right==='0px')?'-250px':'0px'; }
 function showSection(id){ document.querySelectorAll('section').forEach(sec=>sec.classList.remove('active')); document.getElementById(id).classList.add('active'); toggleMenu(); }
 
 // Flocons
@@ -135,69 +136,75 @@ L.circle([baseLat,baseLng],{color:'blue',fillColor:'#00f',fillOpacity:0.2,radius
 L.circle([baseLat,baseLng],{color:'purple',fillColor:'#800080',fillOpacity:0.1,radius:rayonMauve*1000}).addTo(map);
 L.marker([baseLat,baseLng]).addTo(map).bindPopup("Pelletage Maxime - 304 Rue A.-Knobloch").openPopup();
 
-/* Fonction Nominatim */
+// Nominatim et distance
 async function getCoordinates(address){
   const url=`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
-  const response = await fetch(url);
-  const data = await response.json();
+  const resp=await fetch(url);
+  const data=await resp.json();
   if(data.length>0){ return {lat:parseFloat(data[0].lat), lon:parseFloat(data[0].lon)}; }
-  else{return null;}
+  return null;
 }
 
-/* Distance Haversine */
-function distanceKm(lat1, lon1, lat2, lon2){
+function distanceKm(lat1,lon1,lat2,lon2){
   const R=6371;
   const dLat=(lat2-lat1)*Math.PI/180;
   const dLon=(lon2-lon1)*Math.PI/180;
   const a=Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  const c=2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
   return R*c;
 }
 
-/* Formulaire pelletage avec webhook et distance réelle */
+// Formulaire pelletage
 const webhookURL="https://discord.com/api/webhooks/1399488282131435580/jP1VGYSHBPhuOnQsn0F5f3hNaVNiPVcZAQ2ewdvOjoBrFGX0m7rddaaXQKd7AP2h2hdy";
-const form=document.getElementById("pelletageForm"); 
+const form=document.getElementById("pelletageForm");
 const messageBox=document.getElementById("messageBox");
+const zoneMessage=document.getElementById("zoneMessage");
 
-/* Géolocalisation automatique */
-window.addEventListener("load", () => {
+// Géolocalisation automatique
+window.addEventListener("load",()=>{
   const addressInput=document.getElementById("address");
   if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(async (position)=>{
+    navigator.geolocation.getCurrentPosition(async(position)=>{
       const lat=position.coords.latitude; const lon=position.coords.longitude;
       const url=`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
-      const resp=await fetch(url);
-      const data=await resp.json();
-      if(data && data.display_name){ addressInput.value=data.display_name; }
+      const resp=await fetch(url); const data=await resp.json();
+      if(data && data.display_name){ addressInput.value=data.display_name; checkZone(); }
     },()=>{ alert("Veuillez accepter la localisation pour poursuivre la demande de pelletage."); });
   } else { alert("La géolocalisation n'est pas supportée par votre navigateur."); }
 });
 
-form.addEventListener("submit", async function(e){
+// Vérifier la zone
+async function checkZone(){
+  const address=document.getElementById("address").value.trim();
+  if(!address){ zoneMessage.textContent=""; return; }
+  const coords=await getCoordinates(address);
+  if(!coords){ zoneMessage.textContent="Adresse introuvable !"; return; }
+  const dist=distanceKm(baseLat,baseLng,coords.lat,coords.lon);
+  if(dist<=rayonBleu){ zoneMessage.textContent="✅ Dans le cercle bleu : 10$"; }
+  else if(dist<=rayonMauve){ zoneMessage.textContent="✅ Dans le cercle mauve : 20$"; }
+  else{ zoneMessage.textContent="❌ Désolé, votre domicile est trop loin !"; }
+}
+
+document.getElementById("address").addEventListener("input",checkZone);
+
+form.addEventListener("submit",async function(e){
   e.preventDefault();
+  await checkZone();
+  if(zoneMessage.textContent.includes("trop loin")){ alert("Impossible d'envoyer la demande : domicile trop loin."); return; }
+
   const name=document.getElementById("name").value.trim();
   const address=document.getElementById("address").value.trim();
   const phone=document.getElementById("phone").value.trim();
   const email=document.getElementById("email").value.trim();
   const date=document.getElementById("date").value;
-  if(!name||!address||!phone||!email||!date){ messageBox.textContent="Veuillez remplir tous les champs."; messageBox.className="error"; messageBox.style.display="block"; return; }
-  
-  const coords=await getCoordinates(address);
-  let zoneText="Adresse hors zone autorisée !";
-  if(coords){
-    const dist=distanceKm(baseLat,baseLng,coords.lat,coords.lon);
-    if(dist<=rayonBleu){ zoneText="Dans le cercle bleu : 10$"; }
-    else if(dist<=rayonMauve){ zoneText="Dans le cercle mauve : 20$"; }
-    else{ zoneText="Hors du cercle mauve : non desservi"; }
-  }
-  
-  const content=`**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nEmail: ${email}\nDate souhaitée: ${date}\nZone: ${zoneText}`;
+
+  const content=`**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nEmail: ${email}\nDate souhaitée: ${date}\nZone: ${zoneMessage.textContent}`;
   fetch(webhookURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content})})
-  .then(()=>{ messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset(); })
+  .then(()=>{ messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset(); zoneMessage.textContent=""; })
   .catch(()=>{ messageBox.textContent="❌ Erreur, réessayez."; messageBox.className="error"; messageBox.style.display="block"; });
 });
 
-/* Formulaire avis simple */
+// Avis clients
 const avisForm=document.getElementById("avisForm");
 const avisList=document.getElementById("avisList");
 let avisData=[];
@@ -214,14 +221,10 @@ avisForm.addEventListener("submit", function(e){
 });
 
 function renderAvis(){
-  let html="";
-  let total=0;
-  avisData.forEach(a=>{
-    total+=a.stars;
-    html+=`<p><strong>${a.username}</strong> : ${'⭐'.repeat(a.stars)}<br>${a.message}</p>`;
-  });
+  let html=""; let total=0;
+  avisData.forEach(a=>{ total+=a.stars; html+=`<p><strong>${a.username}</strong> : ${'⭐'.repeat(a.stars)}<br>${a.message}</p>`; });
   avisList.innerHTML=html;
-  document.getElementById("averageStars").textContent=(avisData.length>0 ? (total/avisData.length).toFixed(1) : 0);
+  document.getElementById("averageStars").textContent=(avisData.length>0?(total/avisData.length).toFixed(1):0);
 }
 </script>
 
