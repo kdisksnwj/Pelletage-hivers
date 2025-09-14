@@ -35,6 +35,7 @@ button:hover { background:#0095d1; }
 #messageBox.error { background: rgba(200,0,0,0.6); }
 footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-top:20px; }
 #distanceInfo { font-weight:bold; font-size:1.1em; margin-bottom:10px; text-align:center; }
+#zoneMessage { font-weight:bold; margin-bottom:10px; }
 </style>
 </head>
 <body>
@@ -86,11 +87,14 @@ footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-t
 <form id="pelletageForm">
 <input type="text" id="name" placeholder="Ton nom" required>
 <input type="text" id="address" placeholder="Adresse complète" required>
-<p id="zoneMessage" style="font-weight:bold;"></p>
+<p id="zoneMessage"></p>
 <input type="tel" id="phone" placeholder="Numéro de téléphone" required pattern="[0-9]{10}">
 <input type="email" id="email" placeholder="Adresse courriel" required>
 <label for="date" style="margin-bottom:5px; display:block;">Sélectionnez la date souhaitée :</label>
 <input type="date" id="date" required>
+<p style="color:#ffcc00; font-weight:bold; font-size:1em; margin:10px 0;">
+Si l’adresse automatique n’est pas correcte, veuillez écrire votre adresse réelle et je vous rappellerai pour confirmer.
+</p>
 <p style="color: #ffcc00; font-weight:bold; font-size:1.1em; margin:10px 0;">
 VEUILLER PRÉPARER ARGENT LIQUIDE 💵
 </p>
@@ -135,7 +139,7 @@ L.circle([baseLat,baseLng],{color:'blue',fillColor:'#00f',fillOpacity:0.2,radius
 L.circle([baseLat,baseLng],{color:'purple',fillColor:'#800080',fillOpacity:0.1,radius:rayonMauve*1000}).addTo(map);
 L.marker([baseLat,baseLng]).addTo(map).bindPopup("Pelletage Maxime - 304 Rue A.-Knobloch").openPopup();
 
-/* Fonction Nominatim */
+// Nominatim pour coordonnées
 async function getCoordinates(address){
   const url=`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
   const response = await fetch(url);
@@ -144,7 +148,7 @@ async function getCoordinates(address){
   else{return null;}
 }
 
-/* Distance Haversine */
+// Distance Haversine
 function distanceKm(lat1, lon1, lat2, lon2){
   const R=6371;
   const dLat=(lat2-lat1)*Math.PI/180;
@@ -154,12 +158,12 @@ function distanceKm(lat1, lon1, lat2, lon2){
   return R*c;
 }
 
-/* Formulaire pelletage avec webhook et distance réelle */
+// Formulaire pelletage
 const webhookURL="https://discord.com/api/webhooks/1399488282131435580/jP1VGYSHBPhuOnQsn0F5f3hNaVNiPVcZAQ2ewdvOjoBrFGX0m7rddaaXQKd7AP2h2hdy";
 const form=document.getElementById("pelletageForm"); 
 const messageBox=document.getElementById("messageBox");
 
-/* Géolocalisation automatique */
+// Géolocalisation automatique
 window.addEventListener("load", () => {
   const addressInput=document.getElementById("address");
   if(navigator.geolocation){
@@ -190,14 +194,15 @@ form.addEventListener("submit", async function(e){
     else if(dist<=rayonMauve){ zoneText="Dans le cercle mauve : 20$"; }
     else{ zoneText="Hors du cercle mauve : non desservi"; }
   }
-  
+  document.getElementById("zoneMessage").textContent = zoneText;
+
   const content=`**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nEmail: ${email}\nDate souhaitée: ${date}\nZone: ${zoneText}`;
   fetch(webhookURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content})})
   .then(()=>{ messageBox.textContent="✅ Votre demande a été envoyée !"; messageBox.className="success"; messageBox.style.display="block"; form.reset(); })
   .catch(()=>{ messageBox.textContent="❌ Erreur, réessayez."; messageBox.className="error"; messageBox.style.display="block"; });
 });
 
-/* Formulaire avis simple */
+// Formulaire avis
 const avisForm=document.getElementById("avisForm");
 const avisList=document.getElementById("avisList");
 let avisData=[];
