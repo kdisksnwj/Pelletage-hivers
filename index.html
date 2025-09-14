@@ -87,7 +87,7 @@ footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-t
 <input type="text" id="name" placeholder="Ton nom" required>
 <input type="text" id="address" placeholder="Adresse complète" required>
 <p id="zoneMessage" style="font-weight:bold;"></p>
-<input type="text" id="realAddress" placeholder="Si adresse automatique incorrecte, écrivez votre adresse réelle ici">
+<input type="text" id="realAddress" placeholder="Si l'adresse automatique n'est pas correcte, écrivez votre adresse réelle" />
 <input type="tel" id="phone" placeholder="Numéro de téléphone" required pattern="[0-9]{10}">
 <input type="email" id="email" placeholder="Adresse courriel" required>
 <label for="date" style="margin-bottom:5px; display:block;">Sélectionnez la date souhaitée :</label>
@@ -120,7 +120,7 @@ VEUILLER PRÉPARER ARGENT LIQUIDE 💵
 
 <script>
 // Menu
-function toggleMenu(){ const menu=document.getElementById('sideMenu'); menu.style.right=(menu.style.right==='0px')?'-250px':'0px'; }
+function toggleMenu(){ const menu = document.getElementById('sideMenu'); menu.style.right = (menu.style.right==='0px') ? '-250px' : '0px'; }
 function showSection(id){ document.querySelectorAll('section').forEach(sec=>sec.classList.remove('active')); document.getElementById(id).classList.add('active'); toggleMenu(); }
 
 // Flocons
@@ -128,19 +128,36 @@ function createSnowflake(){ const snowflake=document.createElement("div"); snowf
 setInterval(createSnowflake,200);
 
 // Carte Leaflet
-const baseLat=45.4000; const baseLng=-72.7330;
-const rayonBleu=0.75; const rayonMauve=0.95;
+const baseLat=45.4000; 
+const baseLng=-72.7330;
+const rayonBleu=0.75; 
+const rayonMauve=0.95;
+
 var map=L.map('map').setView([baseLat,baseLng],15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-L.circle([baseLat,baseLng],{color:'blue',fillColor:'#00f',fillOpacity:0.2,radius:rayonBleu*1000}).addTo(map);
-L.circle([baseLat,baseLng],{color:'purple',fillColor:'#800080',fillOpacity:0.1,radius:rayonMauve*1000}).addTo(map);
-L.marker([baseLat,baseLng]).addTo(map).bindPopup("Pelletage Maxime - 304 Rue A.-Knobloch").openPopup();
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+// Cercles bleu et mauve
+L.circle([baseLat,baseLng],{
+    color:'blue',
+    fillColor:'#00f',
+    fillOpacity:0.2,
+    radius:rayonBleu*1000
+}).addTo(map);
+
+L.circle([baseLat,baseLng],{
+    color:'purple',
+    fillColor:'#800080',
+    fillOpacity:0.1,
+    radius:rayonMauve*1000
+}).addTo(map);
 
 // Fonction Nominatim
 async function getCoordinates(address){
   const url=`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
-  const response=await fetch(url);
-  const data=await response.json();
+  const response = await fetch(url);
+  const data = await response.json();
   if(data.length>0){ return {lat:parseFloat(data[0].lat), lon:parseFloat(data[0].lon)}; }
   else{return null;}
 }
@@ -176,16 +193,13 @@ window.addEventListener("load", () => {
 
 form.addEventListener("submit", async function(e){
   e.preventDefault();
-  let name=document.getElementById("name").value.trim();
-  let address=document.getElementById("address").value.trim();
-  const realAddress=document.getElementById("realAddress").value.trim();
+  const name=document.getElementById("name").value.trim();
+  const address=document.getElementById("realAddress").value.trim() || document.getElementById("address").value.trim();
   const phone=document.getElementById("phone").value.trim();
   const email=document.getElementById("email").value.trim();
   const date=document.getElementById("date").value;
   if(!name||!address||!phone||!email||!date){ messageBox.textContent="Veuillez remplir tous les champs."; messageBox.className="error"; messageBox.style.display="block"; return; }
-
-  if(realAddress!==""){ address = realAddress; } // utiliser adresse réelle si remplie
-
+  
   const coords=await getCoordinates(address);
   let zoneText="Adresse hors zone autorisée !";
   if(coords){
@@ -202,23 +216,10 @@ form.addEventListener("submit", async function(e){
   .catch(()=>{ messageBox.textContent="❌ Erreur, réessayez."; messageBox.className="error"; messageBox.style.display="block"; });
 });
 
-// Formulaire avis avec stockage local
+// Formulaire avis avec persistance via Admin
 const avisForm=document.getElementById("avisForm");
 const avisList=document.getElementById("avisList");
-let avisData=JSON.parse(localStorage.getItem("avisData")||"[]");
-renderAvis();
-
-avisForm.addEventListener("submit", function(e){
-  e.preventDefault();
-  const username=document.getElementById("username").value.trim();
-  const stars=parseInt(document.getElementById("stars").value);
-  const message=document.getElementById("message").value.trim();
-  if(!username || isNaN(stars) || stars<0 || stars>5){ alert("Nom et étoiles valides requis."); return; }
-  avisData.push({username, stars, message});
-  localStorage.setItem("avisData", JSON.stringify(avisData));
-  renderAvis();
-  avisForm.reset();
-});
+let avisData = JSON.parse(localStorage.getItem('avisData')) || [];
 
 function renderAvis(){
   let html="";
@@ -231,19 +232,33 @@ function renderAvis(){
   document.getElementById("averageStars").textContent=(avisData.length>0 ? (total/avisData.length).toFixed(1) : 0);
 }
 
-// Zone Admin
-document.getElementById("adminBtn").addEventListener("click", function(){
-  const adminUser = prompt("Nom d'utilisateur admin :");
-  const adminPass = prompt("Mot de passe admin :");
-  if(adminUser==="Maxime Riopel" && adminPass==="Billy0930"){
-    if(confirm("Voulez-vous réinitialiser tous les avis ?")){
+avisForm.addEventListener("submit", function(e){
+  e.preventDefault();
+  const username=document.getElementById("username").value.trim();
+  const stars=parseInt(document.getElementById("stars").value);
+  const message=document.getElementById("message").value.trim();
+  if(!username || isNaN(stars) || stars<0 || stars>5){ alert("Nom et étoiles valides requis."); return; }
+  avisData.push({username, stars, message});
+  localStorage.setItem('avisData', JSON.stringify(avisData));
+  renderAvis();
+  avisForm.reset();
+});
+
+renderAvis();
+
+// Admin pour supprimer les avis
+document.getElementById('adminBtn').addEventListener('click', function(){
+  const user = prompt("Nom d'utilisateur :");
+  const pass = prompt("Mot de passe :");
+  if(user==="Maxime Riopel" && pass==="Billy0930"){
+    if(confirm("Voulez-vous supprimer tous les avis ?")){
       avisData=[];
-      localStorage.removeItem("avisData");
+      localStorage.removeItem('avisData');
       renderAvis();
-      alert("Avis réinitialisés.");
+      alert("Tous les avis ont été supprimés.");
     }
   } else {
-    alert("Identifiants incorrects !");
+    alert("Accès refusé.");
   }
 });
 </script>
