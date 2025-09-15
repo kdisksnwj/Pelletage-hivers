@@ -1,52 +1,52 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pelletage Maxime</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pelletage Maxime</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<style>
-body { margin:0; padding:0; font-family:Arial,sans-serif; color:#fff; background:linear-gradient(#001f3f,#003366); overflow-x:hidden; }
-header { padding:20px; background:rgba(0,0,50,0.7); position:relative; text-align:center; }
-header h1 { margin:0; font-size:2em; }
-header p { margin:5px 0; }
-.hamburger { position:absolute; top:20px; right:20px; cursor:pointer; z-index:1001; display:flex; flex-direction:column; justify-content:space-between; width:30px; height:25px; }
-.bar { height:4px; width:100%; background:#fff; border-radius:2px; animation: vibrate 1s infinite; }
-@keyframes vibrate { 0%,100%{ transform: translateX(0); } 25%{ transform: translateX(-2px); } 50%{ transform: translateX(2px); } 75%{ transform: translateX(-2px); } }
-nav { position:fixed; top:0; right:-250px; width:250px; height:100%; background:rgba(0,0,50,0.95); transition:0.3s; display:flex; flex-direction:column; padding-top:60px; z-index:1000; }
-nav a { color:#fff; text-decoration:none; padding:15px 20px; font-size:1.1em; border-bottom:1px solid rgba(255,255,255,0.1); }
-nav a:hover { background:rgba(0,191,255,0.3); }
-section { display:none; padding:30px; max-width:800px; margin:50px auto; background: rgba(0,0,0,0.5); border-radius:15px; transition:0.5s; }
-section.active { display:block; }
-h2 { border-bottom:2px solid #00bfff; padding-bottom:10px; margin-bottom:20px; }
-ul { list-style:none; padding:0; }
-ul li::before { content:"❄️ "; }
-input, button, textarea { width:100%; padding:12px; margin-bottom:10px; border-radius:6px; border:none; font-size:1em; }
-input:focus, textarea:focus { outline:none; border:2px solid #00bfff; }
-button { background:#00bfff; color:#001f3f; font-weight:bold; cursor:pointer; transition:0.3s; }
-button:hover { background:#0095d1; }
-.snowflake { position:fixed; top:-10px; color:white; font-size:1.5em; animation-name:fall; animation-timing-function: linear; z-index:999; }
-@keyframes fall { 0%{ transform:translateY(0); opacity:1; } 100%{ transform:translateY(100vh); opacity:0.5; } }
-#messageBox { text-align:center; margin-top:10px; padding:10px; border-radius:8px; display:none; font-weight:bold; }
-#messageBox.success { background: rgba(0,200,0,0.6); }
-#messageBox.error { background: rgba(200,0,0,0.6); }
-footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-top:20px; }
-#distanceInfo { font-weight:bold; font-size:1.1em; margin-bottom:10px; text-align:center; }
-</style>
+  <style>
+    body { margin:0; padding:0; font-family:Arial,sans-serif; color:#fff; background:linear-gradient(#001f3f,#003366); overflow-x:hidden; }
+    header { padding:20px; background:rgba(0,0,50,0.7); position:relative; text-align:center; }
+    header h1 { margin:0; font-size:2em; }
+    header p { margin:5px 0; }
+    .hamburger { position:absolute; top:20px; right:20px; cursor:pointer; z-index:1001; display:flex; flex-direction:column; justify-content:space-between; width:30px; height:25px; }
+    .bar { height:4px; width:100%; background:#fff; border-radius:2px; animation: vibrate 1s infinite; }
+    @keyframes vibrate { 0%,100%{ transform: translateX(0); } 25%{ transform: translateX(-2px); } 50%{ transform: translateX(2px); } 75%{ transform: translateX(-2px); } }
+    nav { position:fixed; top:0; right:-250px; width:250px; height:100%; background:rgba(0,0,50,0.95); transition:0.3s; display:flex; flex-direction:column; padding-top:60px; z-index:1000; }
+    nav a { color:#fff; text-decoration:none; padding:15px 20px; font-size:1.1em; border-bottom:1px solid rgba(255,255,255,0.1); }
+    nav a:hover { background:rgba(0,191,255,0.3); }
+    section { display:none; padding:30px; max-width:800px; margin:50px auto; background: rgba(0,0,0,0.5); border-radius:15px; transition:0.5s; }
+    section.active { display:block; }
+    h2 { border-bottom:2px solid #00bfff; padding-bottom:10px; margin-bottom:20px; }
+    ul { list-style:none; padding:0; }
+    ul li::before { content:"❄️ "; }
+    input, button, textarea { width:100%; padding:12px; margin-bottom:10px; border-radius:6px; border:none; font-size:1em; }
+    input:focus, textarea:focus { outline:none; border:2px solid #00bfff; }
+    button { background:#00bfff; color:#001f3f; font-weight:bold; cursor:pointer; transition:0.3s; }
+    button:hover { background:#0095d1; }
+    .snowflake { position:fixed; top:-10px; color:white; font-size:1.5em; animation-name:fall; animation-timing-function: linear; z-index:999; }
+    @keyframes fall { 0%{ transform:translateY(0); opacity:1; } 100%{ transform:translateY(100vh); opacity:0.5; } }
+    #messageBox { text-align:center; margin-top:10px; padding:10px; border-radius:8px; display:none; font-weight:bold; }
+    #messageBox.success { background: rgba(0,200,0,0.6); }
+    #messageBox.error { background: rgba(200,0,0,0.6); }
+    footer { text-align:center; padding:15px; background: rgba(0,0,50,0.7); margin-top:20px; }
+    #distanceInfo { font-weight:bold; font-size:1.1em; margin-bottom:10px; text-align:center; }
+  </style>
 </head>
 <body>
 
 <header>
-<h1>❄️ Pelletage Maxime ❄️</h1>
-<p>Service rapide et fiable</p>
-<div class="hamburger" onclick="toggleMenu()">
-  <div class="bar"></div>
-  <div class="bar"></div>
-  <div class="bar"></div>
-</div>
+  <h1>❄️ Pelletage Maxime ❄️</h1>
+  <p>Service rapide et fiable</p>
+  <div class="hamburger" onclick="toggleMenu()">
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+  </div>
 </header>
 
 <nav id="sideMenu">
@@ -137,18 +137,18 @@ function createSnowflake(){
 }
 setInterval(createSnowflake,200);
 
-// Carte Leaflet avec coordonnées correctes
-const baseLat=45.40008;
-const baseLng=-72.73243;
-const rayonBleu=0.75;
-const rayonMauve=0.95;
+// Carte Leaflet : coordonnées exactes pour 304 Rue A.-Knobloch
+const baseLat = 45.4005843;
+const baseLng = -72.7716494;
+const rayonBleu = 0.75;  // 750 m
+const rayonMauve = 0.95; // 950 m
 
-var map=L.map('map').setView([baseLat, baseLng],15);
+var map = L.map('map').setView([baseLat, baseLng], 15);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution:'© OpenStreetMap contributors'
+  attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
-// Dessin des deux cercles
+// Dessin des cercles
 L.circle([baseLat, baseLng], {
   color:'blue',
   fillColor:'#00f',
@@ -163,51 +163,48 @@ L.circle([baseLat, baseLng], {
   radius: rayonMauve * 1000
 }).addTo(map);
 
-// --- Pas de marqueur ni popup ici ---
+// Pas de marqueur ni popup
 
-// Fonction Nominatim pour adresse -> coords
+// Fonctions utilitaires
 async function getCoordinates(address){
-  const url=`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
   const response = await fetch(url);
   const data = await response.json();
-  if(data.length>0){
-    return {lat:parseFloat(data[0].lat), lon:parseFloat(data[0].lon)};
+  if(data.length > 0){
+    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
   }
   return null;
 }
 
-// Calcul distance
 function distanceKm(lat1, lon1, lat2, lon2){
-  const R=6371;
-  const dLat=(lat2-lat1)*Math.PI/180;
-  const dLon=(lon2-lon1)*Math.PI/180;
-  const a=Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  const c=2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R*c;
+  const R = 6371;
+  const dLat = (lat2-lat1) * Math.PI / 180;
+  const dLon = (lon2-lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
 }
 
 // Formulaire pelletage
-const webhookURL="https://discord.com/api/webhooks/1399488282131435580/jP1VGYSHBPhuOnQsn0F5f3hNaVNiPVcZAQ2ewdvOjoBrFGX0m7rddaaXQKd7AP2h2hdy";
-const form=document.getElementById("pelletageForm");
-const messageBox=document.getElementById("messageBox");
-const zoneMessage=document.getElementById("zoneMessage");
+const webhookURL = "https://discord.com/api/webhooks/1399488282131435580/jP1VGYSHBPhuOnQsn0F5f3hNaVNiPVcZAQ2ewdvOjoBrFGX0m7rddaaXQKd7AP2h2hdy";
+const form = document.getElementById("pelletageForm");
+const messageBox = document.getElementById("messageBox");
+const zoneMessage = document.getElementById("zoneMessage");
 
 window.addEventListener("load", () => {
-  const addressInput=document.getElementById("address");
+  const addressInput = document.getElementById("address");
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(async (position)=>{
-      const lat=position.coords.latitude;
-      const lon=position.coords.longitude;
-      const revUrl=`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
-      const resp=await fetch(revUrl);
-      const data=await resp.json();
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      const revUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+      const resp = await fetch(revUrl);
+      const data = await resp.json();
       if(data && data.display_name){
         addressInput.value = data.display_name;
         updateZone();
       }
-    }, ()=>{ alert("Veuillez accepter la localisation pour poursuivre la demande de pelletage."); });
-  } else {
-    alert("Géolocalisation non supportée.");
+    }, ()=>{ /* si refus, rien de spécial */ });
   }
 });
 
@@ -240,9 +237,7 @@ async function updateZone(){
 form.addEventListener("submit", async function(e){
   e.preventDefault();
   const name = document.getElementById("name").value.trim();
-  let address = document.getElementById("address").value.trim();
-  const real = document.getElementById("realAddress").value.trim();
-  if(real !== "") address = real;
+  let address = document.getElementById("realAddress").value.trim() || document.getElementById("address").value.trim();
   const phone = document.getElementById("phone").value.trim();
   const email = document.getElementById("email").value.trim();
   const date = document.getElementById("date").value;
@@ -274,23 +269,23 @@ form.addEventListener("submit", async function(e){
     body: JSON.stringify({content})
   })
   .then(()=>{
-    messageBox.textContent="✅ Votre demande a été envoyée !";
-    messageBox.className="success";
-    messageBox.style.display="block";
+    messageBox.textContent = "✅ Votre demande a été envoyée !";
+    messageBox.className = "success";
+    messageBox.style.display = "block";
     form.reset();
-    document.getElementById("zoneMessage").textContent="";
+    zoneMessage.textContent = "";
   })
   .catch(()=>{
-    messageBox.textContent="❌ Erreur, réessayez.";
-    messageBox.className="error";
-    messageBox.style.display="block";
+    messageBox.textContent = "❌ Erreur, réessayez.";
+    messageBox.className = "error";
+    messageBox.style.display = "block";
   });
 });
 
-// Avis avec persistance
-const avisForm=document.getElementById("avisForm");
-const avisList=document.getElementById("avisList");
-let avisData = JSON.parse(localStorage.getItem('avisData') || "[]");
+// Avis stockage local
+const avisForm = document.getElementById("avisForm");
+const avisList = document.getElementById("avisList");
+let avisData = JSON.parse(localStorage.getItem("avisData") || "[]");
 function renderAvis(){
   let html="";
   let total=0;
