@@ -119,6 +119,8 @@
 </footer>
 
 <script>
+const backendURL = 'https://2c7802ba-f90a-412b-9c72-e4fdf304c777-00-eirsomjw575x.janeway.replit.dev:3000';
+
 // Menu
 function toggleMenu(){ const menu = document.getElementById('sideMenu'); menu.style.right = (menu.style.right==='0px') ? '-250px' : '0px'; }
 function showSection(id){ document.querySelectorAll('section').forEach(sec=>sec.classList.remove('active')); document.getElementById(id).classList.add('active'); toggleMenu(); }
@@ -137,45 +139,24 @@ function createSnowflake(){
 }
 setInterval(createSnowflake,200);
 
-// Carte Leaflet : coordonnées exactes pour 304 Rue A.-Knobloch
+// Carte Leaflet
 const baseLat = 45.4005843;
 const baseLng = -72.7716494;
-const rayonBleu = 0.75;  // 750 m
-const rayonMauve = 0.95; // 950 m
-
+const rayonBleu = 0.75;
+const rayonMauve = 0.95;
 var map = L.map('map').setView([baseLat, baseLng], 15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
+L.circle([baseLat, baseLng], { color:'blue', fillColor:'#00f', fillOpacity:0.2, radius: rayonBleu * 1000 }).addTo(map);
+L.circle([baseLat, baseLng], { color:'purple', fillColor:'#800080', fillOpacity:0.1, radius: rayonMauve * 1000 }).addTo(map);
 
-// Dessin des cercles
-L.circle([baseLat, baseLng], {
-  color:'blue',
-  fillColor:'#00f',
-  fillOpacity:0.2,
-  radius: rayonBleu * 1000
-}).addTo(map);
-
-L.circle([baseLat, baseLng], {
-  color:'purple',
-  fillColor:'#800080',
-  fillOpacity:0.1,
-  radius: rayonMauve * 1000
-}).addTo(map);
-
-// Pas de marqueur ni popup
-
-// Fonctions utilitaires
+// Utils
 async function getCoordinates(address){
   const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
   const response = await fetch(url);
   const data = await response.json();
-  if(data.length > 0){
-    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-  }
+  if(data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
   return null;
 }
-
 function distanceKm(lat1, lon1, lat2, lon2){
   const R = 6371;
   const dLat = (lat2-lat1) * Math.PI / 180;
@@ -204,7 +185,7 @@ window.addEventListener("load", () => {
         addressInput.value = data.display_name;
         updateZone();
       }
-    }, ()=>{ /* si refus, rien de spécial */ });
+    });
   }
 });
 
@@ -215,23 +196,13 @@ async function updateZone(){
   let address = document.getElementById("address").value.trim();
   const real = document.getElementById("realAddress").value.trim();
   if(real !== "") address = real;
-  if(!address){
-    zoneMessage.textContent = "";
-    return;
-  }
+  if(!address){ zoneMessage.textContent = ""; return; }
   const coords = await getCoordinates(address);
-  if(!coords){
-    zoneMessage.textContent = "Adresse introuvable !";
-    return;
-  }
+  if(!coords){ zoneMessage.textContent = "Adresse introuvable !"; return; }
   const dist = distanceKm(baseLat, baseLng, coords.lat, coords.lon);
-  if(dist <= rayonBleu){
-    zoneMessage.textContent = "✅ Dans le cercle bleu : 10$";
-  } else if(dist <= rayonMauve){
-    zoneMessage.textContent = "✅ Dans le cercle mauve : 20$";
-  } else {
-    zoneMessage.textContent = "⚠️ Hors du cercle mauve : tarif à discuter";
-  }
+  if(dist <= rayonBleu) zoneMessage.textContent = "✅ Dans le cercle bleu : 10$";
+  else if(dist <= rayonMauve) zoneMessage.textContent = "✅ Dans le cercle mauve : 20$";
+  else zoneMessage.textContent = "⚠️ Hors du cercle mauve : tarif à discuter";
 }
 
 form.addEventListener("submit", async function(e){
@@ -243,90 +214,53 @@ form.addEventListener("submit", async function(e){
   const date = document.getElementById("date").value;
   if(!name||!address||!phone||!email||!date){
     messageBox.textContent = "Veuillez remplir tous les champs.";
-    messageBox.className = "error";
-    messageBox.style.display = "block";
-    return;
+    messageBox.className = "error"; messageBox.style.display = "block"; return;
   }
   const coords = await getCoordinates(address);
-  let zoneText = "";
-  if(coords){
-    const dist = distanceKm(baseLat, baseLng, coords.lat, coords.lon);
-    if(dist <= rayonBleu){
-      zoneText = "Dans le cercle bleu : 10$";
-    } else if(dist <= rayonMauve){
-      zoneText = "Dans le cercle mauve : 20$";
-    } else {
-      zoneText = "⚠️ Hors du cercle mauve : tarif à discuter";
-    }
-  } else {
-    zoneText = "Adresse introuvable !";
-  }
+  let zoneText = coords ? (distanceKm(baseLat, baseLng, coords.lat, coords.lon) <= rayonBleu ? "Dans le cercle bleu : 10$" : distanceKm(baseLat, baseLng, coords.lat, coords.lon) <= rayonMauve ? "Dans le cercle mauve : 20$" : "⚠️ Hors du cercle mauve : tarif à discuter") : "Adresse introuvable !";
   document.getElementById("zoneMessage").textContent = zoneText;
   const content = `**Nouvelle demande de pelletage**\nNom: ${name}\nAdresse: ${address}\nTéléphone: ${phone}\nEmail: ${email}\nDate souhaitée: ${date}\nZone: ${zoneText}`;
-  fetch(webhookURL, {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({content})
-  })
-  .then(()=>{
-    messageBox.textContent = "✅ Votre demande a été envoyée !";
-    messageBox.className = "success";
-    messageBox.style.display = "block";
-    form.reset();
-    zoneMessage.textContent = "";
-  })
-  .catch(()=>{
-    messageBox.textContent = "❌ Erreur, réessayez.";
-    messageBox.className = "error";
-    messageBox.style.display = "block";
-  });
+  fetch(webhookURL, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({content}) })
+    .then(()=>{ messageBox.textContent = "✅ Votre demande a été envoyée !"; messageBox.className = "success"; messageBox.style.display = "block"; form.reset(); zoneMessage.textContent = ""; })
+    .catch(()=>{ messageBox.textContent = "❌ Erreur, réessayez."; messageBox.className = "error"; messageBox.style.display = "block"; });
 });
 
-// Avis stockage local
+// Avis via backend
 const avisForm = document.getElementById("avisForm");
 const avisList = document.getElementById("avisList");
-let avisData = JSON.parse(localStorage.getItem("avisData") || "[]");
-function renderAvis(){
-  let html="";
-  let total=0;
-  avisData.forEach(a=>{
-    total += a.stars;
-    html += `<p><strong>${a.username}</strong> : ${'⭐'.repeat(a.stars)}<br>${a.message}</p>`;
-  });
-  avisList.innerHTML = html;
-  document.getElementById("averageStars").textContent = (avisData.length>0 ? (total/avisData.length).toFixed(1) : 0);
-}
-renderAvis();
 
-avisForm.addEventListener("submit", function(e){
+async function loadAvis(){
+  const res = await fetch(`${backendURL}/avis`);
+  const data = await res.json();
+  let html=""; let total=0;
+  data.forEach(a => { total+=a.stars; html+=`<p><strong>${a.username}</strong> : ${'⭐'.repeat(a.stars)}<br>${a.message||''}</p>`; });
+  avisList.innerHTML = html;
+  document.getElementById("averageStars").textContent = data.length ? (total/data.length).toFixed(1) : 0;
+}
+loadAvis();
+
+avisForm.addEventListener("submit", async e => {
   e.preventDefault();
   const username = document.getElementById("username").value.trim();
   const stars = parseInt(document.getElementById("stars").value);
   const message = document.getElementById("message").value.trim();
-  if(!username || isNaN(stars) || stars<0 || stars>5){
-    alert("Nom et étoiles valides requis.");
-    return;
-  }
-  avisData.push({username, stars, message});
-  localStorage.setItem('avisData', JSON.stringify(avisData));
-  renderAvis();
+  if(!username || isNaN(stars) || stars<0 || stars>5){ alert("Nom et étoiles valides requis."); return; }
+  await fetch(`${backendURL}/avis`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, stars, message}) });
   avisForm.reset();
+  loadAvis();
 });
 
 // Zone Admin
-document.getElementById("adminBtn").addEventListener("click", function(){
+document.getElementById("adminBtn").addEventListener("click", async function(){
   const user = prompt("Nom d'utilisateur :");
   const pass = prompt("Mot de passe :");
   if(user === "Maxime Riopel" && pass === "Billy0930"){
     if(confirm("Voulez-vous supprimer tous les avis ?")){
-      avisData = [];
-      localStorage.removeItem('avisData');
-      renderAvis();
+      await fetch(`${backendURL}/avis/reset`, { method:'POST' });
+      loadAvis();
       alert("Tous les avis ont été supprimés.");
     }
-  } else {
-    alert("Accès refusé.");
-  }
+  } else { alert("Accès refusé."); }
 });
 </script>
 
